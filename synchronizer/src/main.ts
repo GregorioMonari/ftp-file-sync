@@ -1,8 +1,12 @@
 import Synchronizer from "./Synchronizer";
 import { Config } from "./interfaces/config.interface";
 
+console.log("====================")
+console.log("| Ftp Synchronizer |")
+console.log("====================")
 main();
 
+ 
 async function main(){
     const config:Config={
         host: "localhost",
