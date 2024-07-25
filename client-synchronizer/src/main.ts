@@ -1,9 +1,9 @@
 import Synchronizer from "./Synchronizer";
 import { Config } from "./interfaces/config.interface";
 
-console.log("====================")
-console.log("| Ftp Synchronizer |")
-console.log("====================")
+console.log("=======================")
+console.log("| Client Synchronizer |")
+console.log("=======================")
 main();
 
  

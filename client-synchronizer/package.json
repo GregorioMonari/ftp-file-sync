@@ -1,5 +1,5 @@
 {
-  "name": "ftp-synchronizer",
+  "name": "client-synchronizer",
   "version": "0.0.1",
   "description": "Sync filesystem with an ftp server",
   "main": "./build/main.js",
