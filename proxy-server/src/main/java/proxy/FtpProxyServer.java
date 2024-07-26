@@ -9,7 +9,7 @@ public class FtpProxyServer {
     private int PROXY_PORT = 2121; // Port for the proxy server
     private String FTP_SERVER_HOST = "localhost"; // Actual FTP server hostname
     private int FTP_SERVER_PORT = 21; // Actual FTP server port
-    private final List<ProxyConnection> openedConnections;
+    private final List<ProxyConnectionProcessor> openedConnections;
 
     public FtpProxyServer(int proxyPort, String ftpHost, int ftpPort){
         PROXY_PORT= proxyPort;
@@ -27,7 +27,7 @@ public class FtpProxyServer {
                     System.out.println("** Creating new proxy connection for client: "+clientSocket.toString());
                     //Ftp server stream
                     Socket ftpSocket = new Socket(FTP_SERVER_HOST, FTP_SERVER_PORT);
-                    openedConnections.add(new ProxyConnection(clientSocket,ftpSocket));
+                    openedConnections.add(new ProxyConnectionProcessor(clientSocket,ftpSocket,openedConnections));
                     System.out.println("Opened connections: "+ openedConnections.size());
                 }catch (IOException e) {
                     e.printStackTrace();

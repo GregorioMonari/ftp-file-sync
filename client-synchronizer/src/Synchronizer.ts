@@ -81,6 +81,7 @@ export default class Synchronizer extends FileSystemWatcher{
         try {
             await this.client.access({
                 host: this.config.host,
+                port: this.config.port||21,
                 user: this.config.user,
                 password: this.config.password,
                 secure: this.config.secure||false // Set to true if you are using FTPS

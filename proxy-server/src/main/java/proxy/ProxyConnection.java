@@ -1,23 +1,20 @@
 package proxy;
 
-import java.io.*;
+import proxy.utils.Transaction;
+
 import java.net.*;
 public class ProxyConnection {
-    public Transaction currentTransaction;
     public ProxyConnection(Socket clientSocket, Socket ftpSocket){
-        currentTransaction= new Transaction();
-        new Thread(new SocketIOHandler(SocketHandlerTypes.CLIENT_HANDLER,clientSocket,ftpSocket,this)).start();
-        new Thread(new SocketIOHandler(SocketHandlerTypes.SERVER_HANDLER,ftpSocket,clientSocket,this)).start();
+        boolean printTraffic=true;
+        Transaction transaction= new Transaction();
+        new Thread(new SocketIOHandler(SocketHandlerTypes.CLIENT_HANDLER,clientSocket,ftpSocket,this,transaction,printTraffic)).start();
+        new Thread(new SocketIOHandler(SocketHandlerTypes.SERVER_HANDLER,ftpSocket,clientSocket,this,transaction,printTraffic)).start();
     }
 
-    public void onTransactionCommand(String command){
-        System.out.println("On transaction command: "+command);
+    public void onBeforeTransactionCommand(String command, Transaction transaction){
+        //System.out.println("On transaction command: "+command);
     }
-    public void onTransactionFirstResponse(String response){
-        System.out.println("On transaction response: "+response);
+    public void onBeforeTransactionResponse(String response, Transaction transaction){
+        //System.out.println("On transaction response: "+response);
     }
-    public void onTransactionMultipleResponse(String response){
-        System.out.println("On transaction multiple response: "+response);
-    }
-
 }

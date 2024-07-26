@@ -10,10 +10,11 @@ main();
 async function main(){
     const config:Config={
         host: "localhost",
+        port: 2121,
         user: "myuser",
         password: "mypass",
         timeout: 60000,
-
+        verbose: true,
         pathToWatch: "../shared_test_folder"
     }
     const synchronizer= new Synchronizer(config);
