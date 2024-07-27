@@ -1,6 +1,7 @@
 export interface Config{
     host:string;
     port?:number;
+    wsPort?:number;
     user:string;
     password:string;
     

@@ -7,7 +7,7 @@ import java.net.Socket;
 
 
 
-class SocketIOHandler implements Runnable{
+public class SocketIOHandler implements Runnable{
     ProxyConnection parentConnection;
     Transaction currentTransaction;
     SocketHandlerTypes type;
@@ -34,13 +34,20 @@ class SocketIOHandler implements Runnable{
     }
 
     public void run(){
-        try (
-                InputStream streamIN = socketIN.getInputStream();
-                OutputStream streamOUT = socketOUT.getOutputStream();
-                //Buffers
-                BufferedReader bufferIN = new BufferedReader(new InputStreamReader(streamIN));
-                BufferedWriter bufferOUT = new BufferedWriter(new OutputStreamWriter(streamOUT));
-        ) {
+        try {
+
+            InputStream streamIN = socketIN.getInputStream();
+            OutputStream streamOUT = socketOUT.getOutputStream();
+            //Buffers
+            BufferedReader bufferIN = new BufferedReader(new InputStreamReader(streamIN));
+            BufferedWriter bufferOUT = new BufferedWriter(new OutputStreamWriter(streamOUT));
+            //Expose buffers to proxyConnection
+            if(type==SocketHandlerTypes.CLIENT_HANDLER){
+                parentConnection.clientBufferIn=bufferIN;
+            }else{
+                parentConnection.clientBufferOut=bufferOUT;
+            }
+
             String payload;
             while(true){
                 if(bufferIN.ready()){ //bufferin full
@@ -64,8 +71,14 @@ class SocketIOHandler implements Runnable{
                         }
 
                         //Forward payload to other socket
-                        bufferOUT.write(payload + "\r\n");
-                        bufferOUT.flush();
+                        if(currentTransaction.canPassThrough()){
+                            bufferOUT.write(payload + "\r\n");
+                            bufferOUT.flush();
+                        }else{
+                            System.out.println("Passthrough is disabled for this transaction, skipping forwarding");
+                            //Restore passthrough for any following response
+                            currentTransaction.setPassThrough(true);
+                        }
                     }
                 }
             }

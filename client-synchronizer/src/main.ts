@@ -11,6 +11,7 @@ async function main(){
     const config:Config={
         host: "localhost",
         port: 2121,
+        wsPort: 9666,
         user: "myuser",
         password: "mypass",
         timeout: 60000,

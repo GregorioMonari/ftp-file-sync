@@ -1,4 +1,4 @@
-import proxy.FtpProxyServer;
+import proxy.Proxy;
 
 public class Main {
     public static void main(String[] args) {
@@ -6,12 +6,13 @@ public class Main {
         System.out.println("# FTP Proxy Server #");
         System.out.println("####################");
 
-        //Configuration
-        int proxyPort= 2121;
+        //Endpoint
         String ftpHost= "localhost";
         int ftpPort= 21;
-        //Create and start server
-        FtpProxyServer server= new FtpProxyServer(proxyPort,ftpHost,ftpPort);
-        server.start();
+        //Proxy
+        int proxyPort= 2121;
+        int wsPort= 9666;
+        Proxy proxyServer= new Proxy(ftpHost,ftpPort,proxyPort,wsPort);
+        proxyServer.start();
     }
 }

@@ -3,7 +3,11 @@ package proxy;
 import proxy.utils.Transaction;
 
 import java.net.*;
+import java.io.*;
+
 public class ProxyConnection {
+    public BufferedReader clientBufferIn;
+    public BufferedWriter clientBufferOut;
     public ProxyConnection(Socket clientSocket, Socket ftpSocket){
         boolean printTraffic=true;
         Transaction transaction= new Transaction();

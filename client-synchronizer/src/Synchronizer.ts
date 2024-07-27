@@ -2,11 +2,13 @@ import * as ftp from "basic-ftp";
 import { Config } from "./interfaces/config.interface";
 import FileSystemWatcher from "./FileSystemWatcher";
 import path from "path";
+import WebSocket, {MessageEvent} from "ws";
 
 export default class Synchronizer extends FileSystemWatcher{
     private client:ftp.Client;
     private localRootFolder:string;
     private ftpRootFolder:string;
+    private webSocket!: WebSocket;
     constructor(config:Config){
         super(config);
         this.localRootFolder= path.resolve(config.pathToWatch)
@@ -42,7 +44,40 @@ export default class Synchronizer extends FileSystemWatcher{
         console.log("====================================")
         await this.connectToFtp();
         await this.assertFtpRootFolderExists();
+
+        //GET ID TO SUBSCRIBE
+        await this.subscribe();
     }
+
+    async subscribe(){
+        const response= await this.client.send("PROXYCONNID")
+        console.log("Received connection id: ",response)
+
+        if(response.code!=200){
+            throw new Error("Error while subscribing to ws proxy: "+response.message)
+        }
+
+        //Open websocket
+        const scope=this;
+        this.webSocket = new WebSocket(`ws://${this.config.host}:${this.config.wsPort||8085}`);
+
+        this.webSocket.on("open", () => {
+            console.log("WebSocket connection opened");
+
+            const onDataCb= scope.onServerChangeNotification;
+            const onStreamEvent= (event: MessageEvent)=>{
+                if(event.data.toString().startsWith("ok")){
+                    scope.webSocket.removeEventListener("message",onStreamEvent)
+                    scope.webSocket.addEventListener("message",onDataCb)
+                    console.log("ws link successful, listening to ftp change events")
+                }
+            }
+    
+            scope.webSocket.addEventListener("message",onStreamEvent)
+            scope.webSocket.send(response.message.split(" ")[1]);
+        });
+    }
+
 
     async assertFtpRootFolderExists(){
         const rootFolders = await this.client.list() 
@@ -94,6 +129,12 @@ export default class Synchronizer extends FileSystemWatcher{
     }
 
 
+    onServerChangeNotification(event: MessageEvent){
+        const command= event.data.toString();
+        console.log("Received command notification from server:",command)
+        //Update local fileSystem
+    }
+
     override async onLocalWatcherNotification(event:string, targetPath:string, targetPathNext?:string){
         let remoteTargetPath=targetPath.replace(this.localRootFolder,"").replace(/\\/g,"/") //consider we already cd into working dir
         if(remoteTargetPath.startsWith("/")) remoteTargetPath=remoteTargetPath.slice(1);
@@ -133,12 +174,4 @@ export default class Synchronizer extends FileSystemWatcher{
         }
     }
 
-
-    //TODO: POLL FOR FILE CHANGES IN THE SERVER EVERY MINUTE
-    //TODO: or you could use this same exact script to generate events from the ftp server, reducing load
-    //TODO:     But i think you can do it later, also you can add the api later and the frontend
-    //TODO:     Focus on this script for now
-    onServerChangeEvent(){
-        //Update local fileSystem
-    }
 }

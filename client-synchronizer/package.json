@@ -16,7 +16,9 @@
     "@types/node": "^20.11.0"
   },
   "dependencies": {
+    "@types/ws": "^8.5.11",
     "basic-ftp": "^5.0.5",
-    "watcher": "^2.3.1"
+    "watcher": "^2.3.1",
+    "ws": "^8.18.0"
   }
 }
