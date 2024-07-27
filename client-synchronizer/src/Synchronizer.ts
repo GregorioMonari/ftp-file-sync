@@ -129,10 +129,23 @@ export default class Synchronizer extends FileSystemWatcher{
     }
 
 
-    onServerChangeNotification(event: MessageEvent){
+    async onServerChangeNotification(event: MessageEvent){
         const command= event.data.toString();
         console.log("Received command notification from server:",command)
         //Update local fileSystem
+        const commandName= command.split(" ")[0];
+        const remoteTargetPath= command.split("")[1];
+        let targetPath= this.localRootFolder + (remoteTargetPath.startsWith("/|\\")?"":"/") + remoteTargetPath; 
+        
+        switch(commandName){
+            case "STOR":
+                await this.client.downloadTo(targetPath, remoteTargetPath);
+                console.log("uploaded changed file to remote path:",remoteTargetPath)
+                break;
+            default:
+                console.log("skipping unknown event:",command)
+                break;
+        }
     }
 
     override async onLocalWatcherNotification(event:string, targetPath:string, targetPathNext?:string){
