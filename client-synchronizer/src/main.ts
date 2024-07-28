@@ -1,4 +1,4 @@
-import Synchronizer from "./Synchronizer";
+import ClientSynchronizer from "./ClientSynchronizer";
 import { Config } from "./interfaces/config.interface";
 
 console.log("=======================")
@@ -18,6 +18,6 @@ async function main(){
         verbose: true,
         pathToWatch: "../shared_test_folder"
     }
-    const synchronizer= new Synchronizer(config);
+    const synchronizer= new ClientSynchronizer(config);
     await synchronizer.start();
 }
