@@ -1,5 +1,5 @@
 import path from "path";
-import { QueueEvent } from "./interfaces/queue-event.interface";
+import { QueueEvent } from "../interfaces/queue-event.interface";
 
 export default class PathMapper{
     private localRootPath:string;

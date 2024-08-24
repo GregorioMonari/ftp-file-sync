@@ -26,6 +26,18 @@ public class TransactionValidator {
                 if(!responses.get(0).startsWith("150 Ok to send data.")) error= responses.get(0);
                 if(!responses.get(1).startsWith("226 Transfer complete.")) error= responses.get(1);
                 break;
+            case "MKD":
+                if(responses.size()!=1) return false;
+                if(!responses.get(0).startsWith("257 ")) error= responses.get(0);
+                break;
+            case "DELE":
+                if(responses.size()!=1) return false;
+                if(!responses.get(0).startsWith("250 Delete operation successful.")) error= responses.get(0);
+                break;
+            case "RMD":
+                if(responses.size()!=1) return false;
+                if(!responses.get(0).startsWith("250 Remove directory operation successful.")) error= responses.get(0);
+                break;
             default:
                 error="command not present in whitelist";
                 break;

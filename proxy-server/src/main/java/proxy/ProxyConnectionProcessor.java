@@ -15,7 +15,7 @@ public class ProxyConnectionProcessor extends ProxyConnection{
     private String topLevelFolder=null; //first cwd that the user performs
     private String currentFolder;
 
-    private final String[] commandsToIntercept= {"PROXYCONNID",   "STOR","USER","PASS","CWD"};
+    private final String[] commandsToIntercept= {"PROXYCONNID",   "STOR","USER","PASS","CWD","MKD","DELE","RMD"};
     private final List<ProxyConnectionProcessor> openedConnections;
     public ProxyConnectionProcessor(Socket clientSocket, Socket ftpSocket, List<ProxyConnectionProcessor> openedConnections, String proxyConnID){
         super(clientSocket, ftpSocket);
@@ -94,7 +94,7 @@ public class ProxyConnectionProcessor extends ProxyConnection{
         //Notify transaction by default if previous commands were not encountered
         System.out.println("Notifying "+(openedConnections.size()-1)+" subscribers");
         for(ProxyConnectionProcessor conn: openedConnections){
-            if(!this.equals(conn) && conn.isLoggedIn){
+            if(/*!this.equals(conn) &&*/ conn.isLoggedIn){
                 //Check if it is logged in as the same user and with the same top folder
                 if(username.equals(conn.username) && topLevelFolder.equals(conn.topLevelFolder)){
                     if(conn.linkedWebSocketConn!=null){

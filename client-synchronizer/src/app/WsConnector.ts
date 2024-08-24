@@ -1,7 +1,16 @@
-import { Config } from "./interfaces/config.interface";
+import { Config } from "../interfaces/config.interface";
 import * as ftp from "basic-ftp";
 import WebSocket, {MessageEvent} from "ws";
-
+/*
+WS-FTP LINK PROTOCOL
+client uses the original ftp socket
+client sends ftp command: PROXYCONNID
+proxy responds with: 200 YOUR-ID
+client opens ws socket
+client sends ws message: YOUR-ID
+proxy responds with: ok
+client can now listen to ws events
+*/
 export default class WsConnector{
     private config:Config;
     private client:ftp.Client; //handle file upload/download
