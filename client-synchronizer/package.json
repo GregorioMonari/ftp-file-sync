@@ -8,7 +8,8 @@
     "build": "tsc",
     "dev:build": "tsc -w",
     "dev:run": "nodemon build/main",
-    "start:dev": "concurrently npm:dev:*"
+    "start:dev": "concurrently npm:dev:*",
+    "start:build": "tsc && node ./build/main"
   },
   "author": "Gregorio Monari",
   "license": "MIT",

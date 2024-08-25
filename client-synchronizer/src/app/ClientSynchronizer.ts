@@ -46,6 +46,7 @@ export default class ClientSynchronizer{
         this.queueScheduler= new QueueScheduler(this);
     }
 
+    
     async start(){
         //Print parameters
         console.log("File Watcher path:",this.localRootFolder)
@@ -82,14 +83,21 @@ export default class ClientSynchronizer{
             father.onWatcherMessage(event,targetPath,targetPathNext)
         });
 
+        if(this.config.subscribe){
+            await this.subscribe();
+        }
+    }
+
+    async subscribe(){
+        logger.warn("Websocket subscription still in development, use at your own risk");
+        const father=this;
         //Subscribe to WebSocket and handle incoming events
-        /*const wsConnector= new WsConnector(this.config,this.client);
+        const wsConnector= new WsConnector(this.config,this.client);
         this.webSocket= await wsConnector.subscribe();
         this.webSocket.on("message",(data)=>{
             father.onWsMessage(data)
-        })*/
+        })
     }
-
 
     //HERE WE ARE STILL IN THE ROOT PATH
     async isFtpRootFolderPresent(){

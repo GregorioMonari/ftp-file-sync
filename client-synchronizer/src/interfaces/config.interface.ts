@@ -1,7 +1,6 @@
 export interface Config{
     host:string;
     port?:number;
-    wsPort?:number;
     user:string;
     password:string;
     
@@ -9,5 +8,8 @@ export interface Config{
     secure?:boolean;
     verbose?:boolean;
 
+    subscribe?:boolean;
+    wsPort?:number;
+    
     pathToWatch:string;
 }
