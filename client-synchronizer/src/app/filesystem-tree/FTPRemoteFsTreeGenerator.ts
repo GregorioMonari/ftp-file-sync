@@ -12,7 +12,7 @@ export default class FTPRemoteFsTreeGenerator extends BaseFSTreeGenerator{
 
     protected async list(dirPath:string): Promise<FSEntry[]>{
         const entries= await this.client.list(dirPath);
-        console.log(entries)
+        //console.log(entries)
         return entries.map(entry=>{
 
             return {

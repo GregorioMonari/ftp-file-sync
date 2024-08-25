@@ -28,7 +28,7 @@ async function main(){
     console.log("| Client Synchronizer |")
     console.log("=======================")
     const argsMap= cliArgsMapper.getArgsAsJson()
-    if(argsMap.logLevel) logger.level=argsMap.logLevel as string;
+    //if(argsMap.logLevel) logger.level=argsMap.logLevel as string;
     const config:Config={
         pathToWatch: argsMap.pathToWatch as string, //"../shared_test_folder",
         host: argsMap.host as string||"localhost", //"localhost",

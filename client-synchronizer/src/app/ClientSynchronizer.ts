@@ -29,6 +29,9 @@ export default class ClientSynchronizer{
     private pathMapper:PathMapper;
     private queueScheduler:QueueScheduler;
 
+    private pingServer:boolean=true; //if set to false the ping loop will stop
+    private pingPeriod:number=0;
+
     constructor(config:Config){
         this.config=config;
         this.pathMapper= new PathMapper(this.config.pathToWatch);
@@ -86,6 +89,40 @@ export default class ClientSynchronizer{
         if(this.config.subscribe){
             await this.subscribe();
         }
+
+        //Ping the server continuously to keep the connection open indefinitely.
+        //?May move to proxy or remove ftp and use https from client to proxy
+        this.pingPeriod= 15 * 1000
+        await this.startPingServerLoop() //ping every 15s
+    }
+
+    async ping(){
+        await this.client.pwd();
+    }
+
+    async startPingServerLoop(/*ms:number*/){
+        if(this.pingServer){
+            logger.silly("pinging ftp server...")
+            this.queueScheduler.add({ //Add to queue instead of pinging directly to avoid collisions
+                type: "watcher",
+                data: {event:"ping",targetPath:"",targetPathNext:""}
+            })
+            //await this.ping();
+            //await this.wait(ms);
+        }
+    }
+
+    async wait(ms:number){
+        return new Promise(resolve=>{
+            setTimeout(resolve,ms)
+        })
+    }
+
+    async stop(){
+        if(this.client) this.client.close();
+        if(this.watcher) this.watcher.close();
+        this.pingServer=false;
+        //todo: stop ws connection
     }
 
     async subscribe(){
@@ -242,8 +279,19 @@ export default class ClientSynchronizer{
     }
 
     //Manage queue notifications
-    async onWatcherQueueNotification(event: QueueEvent){
+    async onWatcherQueueNotification(event: QueueEvent):Promise<void>{
         const watcherEvent= event.data.event as string;
+
+        //PING THE SERVER CONTINUOUSLY TO KEEP ALIVE THE CONNECTION
+        if(watcherEvent=="ping"){
+            await this.client.pwd();
+            this.wait(this.pingPeriod).then(()=>{
+                this.startPingServerLoop();
+            })
+            return;
+        }
+
+        //Get paths
         const targetPath= event.data.targetPath as string;
         const remoteTargetPath= this.pathMapper.getRemoteTargetPath(targetPath);
 
@@ -270,36 +318,38 @@ export default class ClientSynchronizer{
         switch (watcherEvent) {
             case "change":
                 await this.client.uploadFrom(targetPath, remoteTargetPath);
-                console.log("uploaded changed file to remote path:",remoteTargetPath)
+                logger.info("uploaded changed file "+targetPath+" to: "+remoteTargetPath)
                 break;
             case "add":
                 await this.client.uploadFrom(targetPath, remoteTargetPath);
-                console.log("added file to remote path:",remoteTargetPath)
+                logger.info("added file "+targetPath+" to: "+remoteTargetPath)
                 break;
             case "addDir":
                 await this.client.uploadFromDir(targetPath, remoteTargetPath);
-                console.log("added directory to remote path:",remoteTargetPath)
+                logger.info("added directory "+targetPath+" to: "+remoteTargetPath)
                 break;
             case "rename":
                 const targetPathNext= event.data.targetPathNext as string;
                 const remoteTargetPathNext= this.pathMapper.getRemoteTargetPath(targetPathNext);
                 await this.client.rename(remoteTargetPath, remoteTargetPathNext);
+                logger.info("renamed file "+remoteTargetPath+" to "+remoteTargetPath)
                 break;
             case "renameDir":
                 const targetDirNext= event.data.targetDirNext as string;
                 const remoteTargetDirNext= this.pathMapper.getRemoteTargetPath(targetDirNext);
                 await this.client.rename(remoteTargetPath, remoteTargetDirNext);
+                logger.info("renamed dir "+remoteTargetPath+" to "+remoteTargetDirNext)
                 break;
             case "unlink":
                 await this.client.remove(remoteTargetPath);
-                console.log("removing file from remote path:",remoteTargetPath)
+                logger.info("removing file from remote path:",remoteTargetPath)
                 break;
             case "unlinkDir": //!THIS HAS STRANGE PATH
                 await this.client.removeDir(remoteTargetPath);
-                console.log("removing directory from remote path:",remoteTargetPath)
+                logger.info("removing directory from remote path:",remoteTargetPath)
                 break;
             default:
-                console.log("skipping unknown event:",event)
+                logger.warn("skipping unknown event:",event)
                 break;
         }
     }

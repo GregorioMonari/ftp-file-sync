@@ -10,6 +10,8 @@ export default class LocalFSTreeGenerator extends BaseFSTreeGenerator{
             //console.log("Reading entry: "+entry.name)
             const entryPath= path.join(dirPath,entry.name);
             const stats= fs.statSync(entryPath);
+            stats.mtime.setSeconds(0,0)
+            //console.log(stats.mtime)
             return {
                 name: entry.name,
                 size: stats.size,

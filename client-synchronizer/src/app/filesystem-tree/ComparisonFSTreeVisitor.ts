@@ -26,7 +26,8 @@ export default class ComparisonFSTreeVisitor implements FileSystemVisitor{
         }else{
             if(file.data.size!=fileToCompare.data.size){
                 console.log("found remote-changed file: "+fileToCompare.name)
-                this.diffList.push({node:fileToCompare,type:"remote-changed"});
+                throw new Error("Conflict found between local and remote file, TBI: "+fileToCompare.name)
+                //this.diffList.push({node:fileToCompare,type:"remote-changed"});
             }else{
                 //TODO: WHAT DO WE DO FOR SAME SIZE FILES? 
             }

@@ -8,7 +8,7 @@ const logger = createLogger({
     })
   ),
   transports: [
-    new transports.Console({level:"silly"}),
+    new transports.Console({level:"silly"}), //'silly' is the lowest
     //new transports.File({ filename: 'app.log' })
   ]
 });
