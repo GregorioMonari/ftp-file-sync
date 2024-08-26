@@ -16,6 +16,7 @@ import TotalSizeFSTVisitor from "./fst-visitors/TotalSizeFSTVisitor";
 import ComparisonFSTreeVisitor from "./fst-visitors/ComparisonFSTreeVisitor";
 import logger from "../utils/logger";
 import { DiffEntry } from "../interfaces/diff-entry.interface";
+import LocalFTPFinder from "./discovery/LocalFTPFinder";
 
 export default class Client{
     private config:Config;
@@ -55,15 +56,29 @@ export default class Client{
         console.log("File Watcher path:",this.localRootFolder)
         console.log("FTP Root path:",this.ftpRootFolder)
         console.log("FTP connection parameters:")
-        console.log("- host:",this.config.host)
+        console.log("- host:",(this.config.autoConnect?"autoconnect":this.config.host))
         console.log("- port:",this.config.port)
         console.log("- user:",this.config.user)
+
+        let host="";
+        //*If autoconnect is enabled, start ftp servers discovery
+        if(this.config.autoConnect){
+            const discoveryStartTime= performance.now();
+            logger.info("Autoconnect enabled, starting ftp servers discovery")
+            const finder= new LocalFTPFinder(100); //timeout 100s
+            const serverIps= await finder.findLocalServers(this.config.port,true) //stop at first
+            if(serverIps.length==0) throw new Error("autoconnect failed, please specify host manually with -host parameter")
+            host= serverIps[0];
+            logger.info("Found FTP server at address: "+host+":"+this.config.port+" - "+(performance.now()-discoveryStartTime).toFixed(3)+"ms");
+        }else{
+            host=this.config.host;
+        }
 
         //Connect to Ftp
         const ftpConnStartTime=performance.now()
         logger.info("Connecting to FTP server...")
         await this.client.access({
-            host: this.config.host,
+            host,
             port: this.config.port||21,
             user: this.config.user,
             password: this.config.password,

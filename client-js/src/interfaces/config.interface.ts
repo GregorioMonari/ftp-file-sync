@@ -1,15 +1,16 @@
 export interface Config{
+    pathToWatch:string;
+
     host:string;
     port?:number;
+    wsPort?:number;
     user:string;
     password:string;
     
     timeout?:number;
     secure?:boolean;
-    verbose?:boolean;
-
-    subscribe?:boolean;
-    wsPort?:number;
     
-    pathToWatch:string;
+    subscribe?:boolean;
+    autoConnect?:boolean;
+    verbose?:boolean;
 }

@@ -1,4 +1,5 @@
 import Client from "./app/Client";
+import LocalFTPFinder from "./app/discovery/LocalFTPFinder";
 import { Config } from "./interfaces/config.interface";
 import CLIArgsMapper from "./utils/CLIArgsMapper";
 import logger from "./utils/logger";
@@ -9,6 +10,7 @@ main();
 async function main(){
     //Set cli args configuration
     const cliArgsMapper= new CLIArgsMapper();
+    //cliArgsMapper.addPositionalArgument("command","sync synchronizes a local directory, while remove removes the corresponding remote directory")
     cliArgsMapper.addPositionalArgument("pathToWatch")
     cliArgsMapper.addArgument("-loglevel")
     cliArgsMapper.addArgument("-host")
@@ -18,7 +20,8 @@ async function main(){
     cliArgsMapper.addFlag("-subscribe")
     cliArgsMapper.addArgument("-wsPort")
     cliArgsMapper.addFlag("-v","enable verbose logging, allows to see underlying ftp and ws protocol requests")
-    if(cliArgsMapper.getArgsAsList()[0].toLowerCase().includes("help")) {
+    cliArgsMapper.addFlag("-d","enables autoconnect to ftp servers connected in the local network. Host parameter will be ignored")
+    if(cliArgsMapper.getArgsAsList().length==0 || cliArgsMapper.getArgsAsList()[0].toLowerCase().includes("help")) {
         cliArgsMapper.printFormattedHelp();
         return;
     }
@@ -38,6 +41,7 @@ async function main(){
         timeout: 60000,
         subscribe: argsMap.subscribe as boolean||false,
         wsPort: parseInt(argsMap.wsPort as string)||9666,
+        autoConnect: argsMap.d as boolean||false,
         verbose: argsMap.v as boolean||false,
     }
     const synchronizer= new Client(config);
