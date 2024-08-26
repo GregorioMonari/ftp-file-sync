@@ -38,6 +38,7 @@ export default class Client{
     constructor(config:Config){
         this.config=config;
         this.host= config.host;
+        if(!this.config.pathToWatch) throw new Error("missing path to watch");
         this.pathMapper= new PathMapper(this.config.pathToWatch);
 
         this.localRootFolder= this.pathMapper.getAbsoluteLocalPath();
