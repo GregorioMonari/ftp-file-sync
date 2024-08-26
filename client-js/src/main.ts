@@ -36,8 +36,8 @@ async function main(){
         pathToWatch: argsMap.pathToWatch as string, //"../shared_test_folder",
         host: argsMap.host as string||"localhost", //"localhost",
         port: parseInt(argsMap.ftpPort as string)||21, //21, //2121,
-        user: "myuser",
-        password: "mypass",
+        user: argsMap.user as string||"myuser",
+        password: argsMap.password as string||"mypass",
         timeout: 60000,
         subscribe: argsMap.subscribe as boolean||false,
         wsPort: parseInt(argsMap.wsPort as string)||9666,
@@ -57,7 +57,7 @@ async function main(){
         case "discover":
             if(!argsMap.pathToWatch) throw new Error("please specify port to discover, es. npm run start:build -- discover 21")
             const discoverPort= parseInt(argsMap.pathToWatch as string)
-            const finder= new OpenPortsFinder(100); //timeout 100s
+            const finder= new OpenPortsFinder(200); //timeout 100s
             console.log(finder.getCidrMap())
             console.log("Discovering services connected locally and listening on port: "+discoverPort)
             const serverIps= await finder.findLocalServers(discoverPort,false) //stop at first
