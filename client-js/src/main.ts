@@ -57,7 +57,7 @@ async function main(){
         case "discover":
             if(!argsMap.pathToWatch) throw new Error("please specify port to discover, es. npm run start:build -- discover 21")
             const discoverPort= parseInt(argsMap.pathToWatch as string)
-            const finder= new OpenPortsFinder(200); //timeout 100s
+            const finder= new OpenPortsFinder(100); //timeout 100s
             console.log(finder.getCidrMap())
             console.log("Discovering services connected locally and listening on port: "+discoverPort)
             const serverIps= await finder.findLocalServers(discoverPort,false) //stop at first
