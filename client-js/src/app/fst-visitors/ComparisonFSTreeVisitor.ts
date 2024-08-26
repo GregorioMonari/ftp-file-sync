@@ -1,7 +1,7 @@
 import { DiffEntry } from "../../interfaces/diff-entry.interface";
-import { FSEntry } from "../../interfaces/fs-entry.interface";
-import { DirectoryNode, FileNode, FileSystemNode } from "./base/FileSystemNode";
-import { FileSystemVisitor } from "./base/FileSystemVisitor.interface";
+import { FSEntry } from "../../lib/filesystem-tree-visitor/fs-entry.interface";
+import { DirectoryNode, FileNode, FileSystemNode } from "../../lib/filesystem-tree-visitor/FileSystemNode";
+import { FileSystemVisitor } from "../../lib/filesystem-tree-visitor/FileSystemVisitor.interface";
 
 
 
@@ -25,6 +25,7 @@ export default class ComparisonFSTreeVisitor implements FileSystemVisitor{
             this.diffList.push({node:file,type:"local-changed"});
         }else{
             if(file.data.size!=fileToCompare.data.size){
+                //TODO: SHOULD COMPARE FILE LINE BY LINE
                 console.log("found remote-changed file: "+fileToCompare.name)
                 //throw new Error("Conflict found between local and remote file, TBI: "+fileToCompare.name)
                 this.diffList.push({node:fileToCompare,type:"remote-changed"});
@@ -41,22 +42,56 @@ export default class ComparisonFSTreeVisitor implements FileSystemVisitor{
                 if(fsNode.data.isDirectory){
                     const oldDir= this.currCompareDir;
                     this.currCompareDir=this.currCompareDir.getChildren().get(fsNode.name) as DirectoryNode;
-                    fsNode.accept(this); //check dir
+                    fsNode.accept(this); //explore subdir
                     this.currCompareDir=oldDir;
                 }else{
                     fsNode.accept(this) //compare files
                 }
             }else{
-                console.log("found local-only "+(fsNode.data.isDirectory?"dir":"file")+" "+fsNode.name)
-                this.diffList.push({node:fsNode,type:"local-only"});
+                if(fsNode.data.isDirectory){
+                    //*EXPLORE LOCAL ONLY DIRECTORY
+                    const stDiffVisitor= new SingleTreeDiffVisitor('local-only');
+                    fsNode.accept(stDiffVisitor)
+                    this.diffList= this.diffList.concat(stDiffVisitor.getDiffList())
+                }else{
+                    //*Add local-only file to diff, no exploration needed
+                    console.log("found local-only file "+fsNode.name)
+                    this.diffList.push({node:fsNode,type:'local-only'});
+                }
             }
         }
         //Now, check for remote-only
         for(const remoteFsNode of this.currCompareDir.getChildren().values()){
             if(!directory.getChildren().has(remoteFsNode.name)){
-                console.log("found remote-only "+(remoteFsNode.data.isDirectory?"dir":"file")+" "+remoteFsNode.name)
-                this.diffList.push({node:remoteFsNode,type:"remote-only"});
+                if(remoteFsNode.data.isDirectory){
+                    //*EXPLORE REMOTE ONLY DIRECTORY
+                    const stDiffVisitor= new SingleTreeDiffVisitor('remote-only');
+                    remoteFsNode.accept(stDiffVisitor)
+                    this.diffList= this.diffList.concat(stDiffVisitor.getDiffList())
+                }else{
+                    //*Add remote-only file to diff, no exploration needed
+                    console.log("found remote-only file "+remoteFsNode.name)
+                    this.diffList.push({node:remoteFsNode,type:'remote-only'});
+                }
             }
         }
     }
+}
+
+
+class SingleTreeDiffVisitor implements FileSystemVisitor{
+    private diffList:DiffEntry[]=[];
+    constructor(private type:'local-only'|'remote-only'){}
+    visitFile(file: FileNode): void {
+        console.log("found "+this.type+" file "+file.name)
+        this.diffList.push({node:file,type:this.type});
+    }
+    visitDirectory(directory: DirectoryNode): void {
+        console.log("found "+this.type+" dir "+directory.name)
+        this.diffList.push({node:directory,type:this.type});
+        for(const fsNode of directory.getChildren().values()){
+            fsNode.accept(this)
+        }
+    }
+    getDiffList(){return this.diffList}
 }

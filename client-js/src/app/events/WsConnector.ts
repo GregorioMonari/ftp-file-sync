@@ -1,4 +1,4 @@
-import { Config } from "../interfaces/config.interface";
+import { Config } from "../../interfaces/config.interface";
 import * as ftp from "basic-ftp";
 import WebSocket, {MessageEvent} from "ws";
 /*

@@ -1,5 +1,5 @@
-import { FileNode, DirectoryNode } from "./base/FileSystemNode";
-import { FileSystemVisitor } from "./base/FileSystemVisitor.interface";
+import { FileNode, DirectoryNode } from "../../lib/filesystem-tree-visitor/FileSystemNode";
+import { FileSystemVisitor } from "../../lib/filesystem-tree-visitor/FileSystemVisitor.interface";
 
 export default class TotalSizeFSTVisitor implements FileSystemVisitor{
     private totalSize=0;

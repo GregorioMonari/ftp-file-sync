@@ -1,4 +1,4 @@
-import ClientSynchronizer from "./app/ClientSynchronizer";
+import Client from "./app/Client";
 import { Config } from "./interfaces/config.interface";
 import CLIArgsMapper from "./utils/CLIArgsMapper";
 import logger from "./utils/logger";
@@ -40,7 +40,7 @@ async function main(){
         wsPort: parseInt(argsMap.wsPort as string)||9666,
         verbose: argsMap.v as boolean||false,
     }
-    const synchronizer= new ClientSynchronizer(config);
+    const synchronizer= new Client(config);
     await synchronizer.start();
 }
 

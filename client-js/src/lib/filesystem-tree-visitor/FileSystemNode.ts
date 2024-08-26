@@ -1,4 +1,4 @@
-import { FSEntry } from "../../../interfaces/fs-entry.interface";
+import { FSEntry } from "./fs-entry.interface";
 import { FileSystemVisitor } from "./FileSystemVisitor.interface";
 
 export abstract class FileSystemNode{

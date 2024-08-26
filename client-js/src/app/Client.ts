@@ -4,20 +4,20 @@ import WebSocket, {MessageEvent} from "ws";
 import { importEsmModule } from "../utils/esm-compatibility";
 import type Watcher from "watcher";
 import { Config } from "../interfaces/config.interface";
-import WsConnector from "./WsConnector";
-import PathMapper from "./PathMapper";
+import WsConnector from "./events/WsConnector";
+import PathMapper from "./mapping/PathMapper";
 import { QueueEvent } from "../interfaces/queue-event.interface";
 import QueueScheduler from "./queue/QueueScheduler";
-import CommandsMap from "./CommandsMap";
-import LocalFSTreeGenerator from "./filesystem-tree/LocalFsTreeGenerator";
-import PrintFSTreeVisitor from "./filesystem-tree/PrintFSTreeVisitor";
-import FTPRemoteFsTreeGenerator from "./filesystem-tree/FTPRemoteFsTreeGenerator";
-import TotalSizeFSTVisitor from "./filesystem-tree/TotalSizeFSTVisitor";
-import ComparisonFSTreeVisitor from "./filesystem-tree/ComparisonFSTreeVisitor";
+import CommandsMap from "./mapping/CommandsMap";
+import LocalFSTreeGenerator from "./fst-visitors/LocalFsTreeGenerator";
+import PrintFSTreeVisitor from "./fst-visitors/PrintFSTreeVisitor";
+import FTPRemoteFsTreeGenerator from "./fst-visitors/FTPRemoteFsTreeGenerator";
+import TotalSizeFSTVisitor from "./fst-visitors/TotalSizeFSTVisitor";
+import ComparisonFSTreeVisitor from "./fst-visitors/ComparisonFSTreeVisitor";
 import logger from "../utils/logger";
 import { DiffEntry } from "../interfaces/diff-entry.interface";
 
-export default class ClientSynchronizer{
+export default class Client{
     private config:Config;
     private localRootFolder:string;
     private ftpRootFolder:string;
@@ -154,6 +154,10 @@ export default class ClientSynchronizer{
         return fs.existsSync(this.localRootFolder);
     }
 
+    async cdIntoWorkDir(){
+        await this.client.cd("/"+this.ftpRootFolder)
+    }
+
     async synchronize(){
         const syncStartTime=performance.now();
         logger.info("Synchronizing with server...")
@@ -168,13 +172,14 @@ export default class ClientSynchronizer{
             logger.info("Root ftp folder not present, creating one") 
             await this.client.ensureDir(this.ftpRootFolder) //also cd's into the specified path
             await this.client.clearWorkingDir() //ensure directory is empty
-            await this.client.uploadFromDir(this.localRootFolder) //upload to working directory if rootPath is undefined 
-            return;
+            //!IF I JUST CREATE THE DIRECTORY, SYNC SHOULD TAKE CARE OF THE REST
+            //await this.client.uploadFromDir(this.localRootFolder) //upload to working directory if rootPath is undefined 
+            //return;
+        }else{
+            await this.cdIntoWorkDir();
         }
-        //If we are here, both directories exist. Cd into workding dir and sync with timestamps
-        await this.client.cd(this.ftpRootFolder)
-
-        //*If both are present, check last modification to synchronize
+        
+        //*If we are here both directories are present, check last modifications to synchronize
         logger.info("generating file-system trees")
         const treeGenStartTime= performance.now();
         const localGenerator= new LocalFSTreeGenerator();
@@ -219,8 +224,10 @@ export default class ClientSynchronizer{
                     localPath= diffEntry.node.path;
                     remotePath= this.pathMapper.getRemoteTargetPath(localPath);
                     if(diffEntry.node.data.isDirectory){
-                        logger.debug("uploading dir "+localPath+" to: "+remotePath)
-                        await this.client.uploadFromDir(localPath, remotePath);
+                        logger.debug("adding dir "+localPath+" to: "+remotePath)
+                        await this.client.ensureDir(remotePath); //!ADD DIR ONLY
+                        //logger.debug("cd into working dir: "+this.ftpRootFolder)
+                        await this.cdIntoWorkDir();
                     }else{
                         logger.debug("uploading file "+localPath+" to: "+remotePath)
                         await this.client.uploadFrom(localPath, remotePath);
@@ -230,8 +237,9 @@ export default class ClientSynchronizer{
                     remotePath= diffEntry.node.path;
                     localPath= this.pathMapper.getLocalTargetPath(remotePath);
                     if(diffEntry.node.data.isDirectory){
-                        logger.debug("downloading dir "+remotePath+" to: "+localPath)
-                        await this.client.downloadToDir(localPath, remotePath);
+                        logger.debug("adding dir "+remotePath+" to: "+localPath)
+                        //await this.client.downloadToDir(localPath, remotePath); //!ADD DIR ONLY
+                        fs.mkdirSync(localPath);
                     }else{
                         logger.debug("downloading file "+remotePath+" to: "+localPath)
                         await this.client.downloadTo(localPath, remotePath);

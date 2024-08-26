@@ -1,5 +1,5 @@
-import BaseFSTreeGenerator from "./base/BaseFSTreeGenerator";
-import { FSEntry } from "../../interfaces/fs-entry.interface";
+import BaseFSTreeGenerator from "../../lib/filesystem-tree-visitor/BaseFSTreeGenerator";
+import { FSEntry } from "../../lib/filesystem-tree-visitor/fs-entry.interface";
 import * as fs from "fs";
 import path from "path";
 

@@ -1,5 +1,5 @@
-import { DirectoryNode, FileNode } from "./base/FileSystemNode";
-import { FileSystemVisitor } from "./base/FileSystemVisitor.interface";
+import { DirectoryNode, FileNode } from "../../lib/filesystem-tree-visitor/FileSystemNode";
+import { FileSystemVisitor } from "../../lib/filesystem-tree-visitor/FileSystemVisitor.interface";
 
 export default class PrintFSTreeVisitor implements FileSystemVisitor{
     

@@ -1,4 +1,4 @@
-import { FileSystemNode } from "../app/filesystem-tree/base/FileSystemNode";
+import { FileSystemNode } from "../lib/filesystem-tree-visitor/FileSystemNode";
 
 export interface DiffEntry{
     node: FileSystemNode,

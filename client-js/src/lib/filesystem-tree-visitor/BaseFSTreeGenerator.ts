@@ -1,5 +1,5 @@
 import path from "path";
-import { FSEntry } from "../../../interfaces/fs-entry.interface";
+import { FSEntry } from "./fs-entry.interface";
 import { DirectoryNode, FileNode } from "./FileSystemNode";
 
 
