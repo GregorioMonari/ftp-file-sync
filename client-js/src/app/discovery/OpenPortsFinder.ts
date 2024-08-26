@@ -1,7 +1,7 @@
 import net from 'node:net'
 import os from 'node:os'
 import BinaryNumberFormatter from '../../utils/BinaryNumberFormatter';
-export default class LocalFTPFinder{
+export default class OpenPortsFinder{
     constructor(private timeout?:number){}
     async findLocalServers(port?:number,stopAtFirst?:boolean){
         //console.log(this.getCidrMap())

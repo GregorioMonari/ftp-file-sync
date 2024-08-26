@@ -16,7 +16,7 @@ import TotalSizeFSTVisitor from "./fst-visitors/TotalSizeFSTVisitor";
 import ComparisonFSTreeVisitor from "./fst-visitors/ComparisonFSTreeVisitor";
 import logger from "../utils/logger";
 import { DiffEntry } from "../interfaces/diff-entry.interface";
-import LocalFTPFinder from "./discovery/LocalFTPFinder";
+import OpenPortsFinder from "./discovery/OpenPortsFinder";
 
 export default class Client{
     private config:Config;
@@ -70,7 +70,7 @@ export default class Client{
         if(this.config.autoConnect){
             const discoveryStartTime= performance.now();
             logger.info("Autoconnect enabled, starting ftp servers discovery")
-            const finder= new LocalFTPFinder(100); //timeout 100s
+            const finder= new OpenPortsFinder(100); //timeout 100s
             const serverIps= await finder.findLocalServers(this.config.port,true) //stop at first
             if(serverIps.length==0) throw new Error("autoconnect failed, please specify host manually with -host parameter")
             this.host= serverIps[0];

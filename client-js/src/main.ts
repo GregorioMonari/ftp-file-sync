@@ -1,5 +1,5 @@
 import Client from "./app/Client";
-import LocalFTPFinder from "./app/discovery/LocalFTPFinder";
+import OpenPortsFinder from "./app/discovery/OpenPortsFinder";
 import { Config } from "./interfaces/config.interface";
 import CLIArgsMapper from "./utils/CLIArgsMapper";
 import logger from "./utils/logger";
@@ -10,7 +10,7 @@ main();
 async function main(){
     //Set cli args configuration
     const cliArgsMapper= new CLIArgsMapper();
-    //cliArgsMapper.addPositionalArgument("command","sync synchronizes a local directory, while remove removes the corresponding remote directory")
+    cliArgsMapper.addPositionalArgument("command","sync dir, remove dir, discover services")
     cliArgsMapper.addPositionalArgument("pathToWatch")
     cliArgsMapper.addArgument("-loglevel")
     cliArgsMapper.addArgument("-host")
@@ -27,9 +27,9 @@ async function main(){
     }
 
     //Begin
-    console.log("=======================")
-    console.log("| Client Synchronizer |")
-    console.log("=======================")
+    console.log("====================")
+    console.log("| FTP Synchronizer |")
+    console.log("====================")
     const argsMap= cliArgsMapper.getArgsAsJson()
     //if(argsMap.logLevel) logger.level=argsMap.logLevel as string;
     const config:Config={
@@ -44,19 +44,30 @@ async function main(){
         autoConnect: argsMap.d as boolean||false,
         verbose: argsMap.v as boolean||false,
     }
-    const synchronizer= new Client(config);
-    await synchronizer.start();
+
+    //MANAGE COMMANDS
+    switch (argsMap.command) {
+        case "sync":
+            const synchronizer= new Client(config);
+            await synchronizer.start();
+            break;
+        case "remove":
+            throw new Error("TBI")
+            break;
+        case "discover":
+            if(!argsMap.pathToWatch) throw new Error("please specify port to discover, es. npm run start:build -- discover 21")
+            const discoverPort= parseInt(argsMap.pathToWatch as string)
+            const finder= new OpenPortsFinder(100); //timeout 100s
+            console.log(finder.getCidrMap())
+            console.log("Discovering services connected locally and listening on port: "+discoverPort)
+            const serverIps= await finder.findLocalServers(discoverPort,false) //stop at first
+            console.log("Found "+serverIps.length+" services. Ip List:")
+            for(const ip of serverIps){
+                console.log(ip)
+            }
+            break;
+        default:
+            console.log("unknown command: "+argsMap.command+", closing application")
+            break;
+    }
 }
-
-
-/*//!TEST
-const recentDate= parseUNIXLsDate('Dec 31 7:48')
-const oldDate= parseUNIXLsDate('Feb 25 2023')
-const recentDate2= parseUNIXLsDate('Aug 26 7:48')
-console.log(recentDate)
-console.log(oldDate)
-console.log(recentDate2)
-//!TEST
-//throw new Error("TESTING")
-return
-*/
