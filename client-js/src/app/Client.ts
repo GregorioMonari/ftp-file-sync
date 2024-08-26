@@ -46,11 +46,10 @@ export default class Client{
         this.client = new ftp.Client(this.config.timeout)
         this.client.ftp.verbose = this.config.verbose||false;
         process.on("beforeExit",()=>{
+            //avoid reconnection
             this.performReconnection=false;
             if(this.client) this.client.close();
             if(this.watcher) this.watcher.close();
-            //avoid reconnection
-
             console.log("onBeforeExit: closed client and watcher")
         })
         this.queueScheduler= new QueueScheduler(this);
@@ -381,7 +380,7 @@ export default class Client{
                 logger.info("added file "+targetPath+" to: "+remoteTargetPath)
                 break;
             case "addDir":
-                await this.client.uploadFromDir(targetPath, remoteTargetPath);
+                await this.client.uploadFromDir(targetPath, remoteTargetPath); //TODO: USE TREE INSTEAD OF UPLOADING WHOLE DIR AT ONCE
                 logger.info("added directory "+targetPath+" to: "+remoteTargetPath)
                 break;
             case "rename":
