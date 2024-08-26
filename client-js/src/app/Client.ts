@@ -20,6 +20,7 @@ import LocalFTPFinder from "./discovery/LocalFTPFinder";
 
 export default class Client{
     private config:Config;
+    private host:string;
     private localRootFolder:string;
     private ftpRootFolder:string;
 
@@ -32,9 +33,11 @@ export default class Client{
 
     private pingServer:boolean=true; //if set to false the ping loop will stop
     private pingPeriod:number=0;
+    private performReconnection:boolean=true;
 
     constructor(config:Config){
         this.config=config;
+        this.host= config.host;
         this.pathMapper= new PathMapper(this.config.pathToWatch);
 
         this.localRootFolder= this.pathMapper.getAbsoluteLocalPath();
@@ -43,8 +46,11 @@ export default class Client{
         this.client = new ftp.Client(this.config.timeout)
         this.client.ftp.verbose = this.config.verbose||false;
         process.on("beforeExit",()=>{
+            this.performReconnection=false;
             if(this.client) this.client.close();
-            if(this.watcher) this.watcher.close()
+            if(this.watcher) this.watcher.close();
+            //avoid reconnection
+
             console.log("onBeforeExit: closed client and watcher")
         })
         this.queueScheduler= new QueueScheduler(this);
@@ -60,7 +66,7 @@ export default class Client{
         console.log("- port:",this.config.port)
         console.log("- user:",this.config.user)
 
-        let host="";
+        //let host="";
         //*If autoconnect is enabled, start ftp servers discovery
         if(this.config.autoConnect){
             const discoveryStartTime= performance.now();
@@ -68,26 +74,14 @@ export default class Client{
             const finder= new LocalFTPFinder(100); //timeout 100s
             const serverIps= await finder.findLocalServers(this.config.port,true) //stop at first
             if(serverIps.length==0) throw new Error("autoconnect failed, please specify host manually with -host parameter")
-            host= serverIps[0];
-            logger.info("Found FTP server at address: "+host+":"+this.config.port+" - "+(performance.now()-discoveryStartTime).toFixed(3)+"ms");
+            this.host= serverIps[0];
+            logger.info("Found FTP server at address: "+this.host+":"+this.config.port+" - "+(performance.now()-discoveryStartTime).toFixed(3)+"ms");
         }else{
-            host=this.config.host;
+            this.host=this.config.host;
         }
 
-        //Connect to Ftp
-        const ftpConnStartTime=performance.now()
-        logger.info("Connecting to FTP server...")
-        await this.client.access({
-            host,
-            port: this.config.port||21,
-            user: this.config.user,
-            password: this.config.password,
-            secure: this.config.secure||false // Set to true if you are using FTPS
-        })
-        logger.info("Connected to Ftp, logged in - "+(performance.now()-ftpConnStartTime)+"ms")
-
-        //Synchronize client with server at startup
-        await this.synchronize();
+        //Connect and perform synchronization
+        await this.connectAndSync()
 
         //Start watcher
         const father=this;
@@ -104,17 +98,67 @@ export default class Client{
         if(this.config.subscribe){
             await this.subscribe();
         }
+    }
+
+    async stop(){
+        this.pingServer=false;
+        this.performReconnection=false;
+        if(this.client) this.client.close();
+        if(this.watcher) this.watcher.close();
+        //todo: stop ws connection
+    }
+
+
+
+
+    //Connections
+    async connectAndSync(){
+        //Connect to Ftp
+        const ftpConnStartTime=performance.now()
+        logger.info("Connecting to FTP server...")
+        await this.client.access({
+            host: this.host,
+            port: this.config.port||21,
+            user: this.config.user,
+            password: this.config.password,
+            secure: this.config.secure||false // Set to true if you are using FTPS
+        })
+        logger.info("Connected to Ftp, logged in - "+(performance.now()-ftpConnStartTime)+"ms")
+
+        //Set reconnection
+        const father=this;
+        this.client.ftp.socket.on("end",()=>{father.reconnect()})
+        this.client.ftp.socket.on("timeout",()=>{father.reconnect()})
+
+        //Synchronize client with server at startup
+        await this.synchronize();
 
         //Ping the server continuously to keep the connection open indefinitely.
         //?May move to proxy or remove ftp and use https from client to proxy
         this.pingPeriod= 15 * 1000
         await this.startPingServerLoop() //ping every 15s
     }
+    async reconnect(){
+        if(this.performReconnection){
+            logger.info("lost connection to ftp server, trying to reconnect")
+            let reconnected=false;
+            let attemptN=1;
+            while(!reconnected){
+                logger.info("reconnect attempt "+attemptN+"...")
+                try{
+                    await this.connectAndSync();
+                    reconnected=true;
+                }catch(e){
+                    await this.wait(5000)
+                }
+                attemptN++;
+            }
+        }
+    }
 
     async ping(){
         await this.client.pwd();
     }
-
     async startPingServerLoop(/*ms:number*/){
         if(this.pingServer){
             logger.silly("pinging ftp server...")
@@ -126,53 +170,16 @@ export default class Client{
             //await this.wait(ms);
         }
     }
-
     async wait(ms:number){
         return new Promise(resolve=>{
             setTimeout(resolve,ms)
         })
     }
 
-    async stop(){
-        if(this.client) this.client.close();
-        if(this.watcher) this.watcher.close();
-        this.pingServer=false;
-        //todo: stop ws connection
-    }
 
-    async subscribe(){
-        logger.warn("Websocket subscription still in development, use at your own risk");
-        const father=this;
-        //Subscribe to WebSocket and handle incoming events
-        const wsConnector= new WsConnector(this.config,this.client);
-        this.webSocket= await wsConnector.subscribe();
-        this.webSocket.on("message",(data)=>{
-            father.onWsMessage(data)
-        })
-    }
 
-    //HERE WE ARE STILL IN THE ROOT PATH
-    async isFtpRootFolderPresent(){
-        const rootFolders = await this.client.list() 
-        //Search if folder is already present
-        if(rootFolders && rootFolders.length!=0){
-            for(const folder of rootFolders){
-                if(folder.name==this.ftpRootFolder){
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
 
-    async isLocalRootFolderPresent(){
-        return fs.existsSync(this.localRootFolder);
-    }
-
-    async cdIntoWorkDir(){
-        await this.client.cd("/"+this.ftpRootFolder)
-    }
-
+    //SYNCHRONIZATION
     async synchronize(){
         const syncStartTime=performance.now();
         logger.info("Synchronizing with server...")
@@ -229,7 +236,24 @@ export default class Client{
         }
         logger.info("Synchronization completed! - "+(performance.now()-syncStartTime)+"ms")
     }
-
+    async isFtpRootFolderPresent(){ //!HERE WE ARE STILL IN THE ROOT PATH
+        const rootFolders = await this.client.list() 
+        //Search if folder is already present
+        if(rootFolders && rootFolders.length!=0){
+            for(const folder of rootFolders){
+                if(folder.name==this.ftpRootFolder){
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    async isLocalRootFolderPresent(){
+        return fs.existsSync(this.localRootFolder);
+    }
+    async cdIntoWorkDir(){
+        await this.client.cd("/"+this.ftpRootFolder)
+    }
     async mergeDiffs(diffList:DiffEntry[]){
         logger.info("merging changes...")
         let localPath,remotePath:string;
@@ -280,7 +304,17 @@ export default class Client{
 
 
 
-
+    //EVENTS
+    async subscribe(){
+        logger.warn("Websocket subscription still in development, use at your own risk");
+        const father=this;
+        //Subscribe to WebSocket and handle incoming events
+        const wsConnector= new WsConnector(this.config,this.client);
+        this.webSocket= await wsConnector.subscribe();
+        this.webSocket.on("message",(data)=>{
+            father.onWsMessage(data)
+        })
+    }
     //Add Inbound and Outbound events to queue
     async onWatcherMessage(event:string, targetPath:string, targetPathNext?:string ){
         this.queueScheduler.add({
@@ -327,7 +361,6 @@ export default class Client{
             cmdName= lastCommand.split(" ")[0];
             cmdPath= lastCommand.split(" ")[1];
         }
-
         //Avoid sending back ws commands
         if(cmdName!=""&&cmdName==CommandsMap.event2commandName[watcherEvent]){
             //Compare paths
