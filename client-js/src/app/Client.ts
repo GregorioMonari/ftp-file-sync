@@ -22,7 +22,7 @@ export default class Client{
     private config:Config;
     private host:string;
     private localRootFolder:string;
-    private ftpRootFolder:string;
+    private ftpRootFolder!:string;
 
     private client:ftp.Client; //handle file upload/download
     private webSocket!:WebSocket; //captures incoming events
@@ -40,10 +40,7 @@ export default class Client{
         this.host= config.host;
         if(!this.config.pathToWatch) throw new Error("missing path to watch");
         this.pathMapper= new PathMapper(this.config.pathToWatch);
-
         this.localRootFolder= this.pathMapper.getAbsoluteLocalPath();
-        this.ftpRootFolder= this.pathMapper.getFtpRootFolder(this.localRootFolder)
-
         this.client = new ftp.Client(this.config.timeout)
         this.client.ftp.verbose = this.config.verbose||false;
         process.on("beforeExit",()=>{
@@ -59,8 +56,8 @@ export default class Client{
     
     async start(){
         //Print parameters
-        console.log("File Watcher path:",this.localRootFolder)
-        console.log("FTP Root path:",this.ftpRootFolder)
+        console.log("Watching directory:",this.localRootFolder)
+        //console.log("FTP Root path:",this.ftpRootFolder)
         console.log("FTP connection parameters:")
         console.log("- host:",(this.config.autoConnect?"autoconnect":this.config.host))
         console.log("- port:",this.config.port)
@@ -124,12 +121,16 @@ export default class Client{
             secure: this.config.secure||false // Set to true if you are using FTPS
         })
         logger.info("Connected to Ftp, logged in - "+(performance.now()-ftpConnStartTime)+"ms")
-
         //Set reconnection
         const father=this;
         this.client.ftp.socket.on("end",()=>{father.reconnect()})
         this.client.ftp.socket.on("timeout",()=>{father.reconnect()})
 
+        //Set remote path
+        const pwd= await this.client.pwd();
+        this.ftpRootFolder= this.pathMapper.getFtpRootFolder(pwd);
+        //console.log(this.ftpRootFolder)
+        //throw new Error("mao")
         //Synchronize client with server at startup
         await this.synchronize();
 
@@ -156,10 +157,10 @@ export default class Client{
         }
     }
 
-    async ping(){
+    private async ping(){
         await this.client.pwd();
     }
-    async startPingServerLoop(/*ms:number*/){
+    private async startPingServerLoop(/*ms:number*/){
         if(this.pingServer){
             logger.silly("pinging ftp server...")
             this.queueScheduler.add({ //Add to queue instead of pinging directly to avoid collisions
@@ -170,7 +171,7 @@ export default class Client{
             //await this.wait(ms);
         }
     }
-    async wait(ms:number){
+    private async wait(ms:number){
         return new Promise(resolve=>{
             setTimeout(resolve,ms)
         })
@@ -180,7 +181,7 @@ export default class Client{
 
 
     //SYNCHRONIZATION
-    async synchronize(){
+    private async synchronize(){
         const syncStartTime=performance.now();
         logger.info("Synchronizing with server...")
         //Ensure both local and remote directory are present
@@ -236,25 +237,25 @@ export default class Client{
         }
         logger.info("Synchronization completed! - "+(performance.now()-syncStartTime)+"ms")
     }
-    async isFtpRootFolderPresent(){ //!HERE WE ARE STILL IN THE ROOT PATH
+    private async isFtpRootFolderPresent(){ //!HERE WE ARE STILL IN THE ROOT PATH
         const rootFolders = await this.client.list() 
         //Search if folder is already present
         if(rootFolders && rootFolders.length!=0){
             for(const folder of rootFolders){
-                if(folder.name==this.ftpRootFolder){
+                if(folder.name==this.pathMapper.getSyncFolderName()){
                     return true;
                 }
             }
         }
         return false;
     }
-    async isLocalRootFolderPresent(){
+    private async isLocalRootFolderPresent(){
         return fs.existsSync(this.localRootFolder);
     }
-    async cdIntoWorkDir(){
-        await this.client.cd("/"+this.ftpRootFolder)
+    private async cdIntoWorkDir(){
+        await this.client.cd(this.ftpRootFolder)
     }
-    async mergeDiffs(diffList:DiffEntry[]){
+    private async mergeDiffs(diffList:DiffEntry[]){
         logger.info("merging changes...")
         let localPath,remotePath:string;
         for(const diffEntry of diffList){

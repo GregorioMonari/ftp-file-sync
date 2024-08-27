@@ -130,7 +130,7 @@ export default class OpenPortsFinder{
         return map;
     }
 
-    checkPort(host:string, port:number) {
+    checkPort(host:string, port:number) :Promise<boolean> {
         return new Promise(resolve=>{
             const socket = new net.Socket();
             const timeOut= this.timeout||100;
