@@ -88,13 +88,15 @@ export default class Synchronizer{
         //Initialize classes
         PathMapper.setLocalAndRemotePaths(this.config.pathToWatch,remotePwd); //*INIT PATH MAPPER
         this.syncStateDb= new SqliteSyncStateDb("../test_appdata",PathMapper.getLocalRootPath()) //todo: manage appdata better
-        //ping every 15s
-        this.pingPeriod= 15 * 1000
-        await this.startPingServerLoop()
+
 
         //*Synchronize
         await this.client.ensureWorkDir();//Ensure both local and remote directory are present
         await this.synchronize();
+
+        //ping every 15s
+        this.pingPeriod= 15 * 1000
+        await this.startPingServerLoop()
 
         //**Start watcher
         const father=this;
@@ -170,7 +172,7 @@ export default class Synchronizer{
             logger.info("checking for differences between local and last sync db")
             const lastSyncDiffCheckerVisitor= new ComparisonFSTreeVisitor(lastSyncLocalTreeRoot,this.client,recursive); //!non usiamo il client perchè abbiamo tutti i checksum
             await localTreeRoot.accept(lastSyncDiffCheckerVisitor);
-            const lastSyncDiffList= lastSyncDiffCheckerVisitor.getDiffList();
+            lastSyncDiffList= lastSyncDiffCheckerVisitor.getDiffList();
             logger.info("found "+lastSyncDiffList.length+" differences")
         }
 
