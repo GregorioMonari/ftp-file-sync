@@ -1,8 +1,9 @@
-import Client from "./app/Client";
-import OpenPortsFinder from "./app/discovery/OpenPortsFinder";
+import Synchronizer from "./app/Synchronizer";
+import OpenPortsFinder from "./utils/OpenPortsFinder";
 import { Config } from "./interfaces/config.interface";
 import CLIArgsMapper from "./utils/CLIArgsMapper";
 import logger from "./utils/logger";
+import SqliteSyncStateDb from "./app/filesystem/sync-state-db/SqliteSyncStateDb";
 
 main();
 
@@ -48,7 +49,7 @@ async function main(){
     //MANAGE COMMANDS
     switch (argsMap.command) {
         case "sync":
-            const synchronizer= new Client(config);
+            const synchronizer= new Synchronizer(config);
             await synchronizer.start();
             break;
         case "remove":

@@ -1,6 +1,6 @@
 import net from 'node:net'
 import os from 'node:os'
-import BinaryNumberFormatter from '../../utils/BinaryNumberFormatter';
+import BinaryNumberFormatter from './BinaryNumberFormatter';
 export default class OpenPortsFinder{
     constructor(private timeout?:number){}
     async findLocalServers(port?:number,stopAtFirst?:boolean){

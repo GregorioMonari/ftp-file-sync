@@ -1,12 +1,10 @@
 import BaseFSTreeGenerator from "../../lib/filesystem-tree-visitor/BaseFSTreeGenerator";
 import { FSEntry } from "../../lib/filesystem-tree-visitor/fs-entry.interface";
-import * as fs from "fs";
-import path from "path";
-import * as ftp from "basic-ftp";
 import parseUNIXLsDate from "../../utils/unix-date-parser";
+import FileTransferClient from "../FileTransferClient";
 
 export default class FTPRemoteFsTreeGenerator extends BaseFSTreeGenerator{
-    constructor(private client:ftp.Client){
+    constructor(private client:FileTransferClient){
         super();
     }
 

@@ -44,9 +44,9 @@ describe("client synchronizer",()=>{
             fs.writeFileSync(testFolderPath+"/nested/nestedFile1.txt","wow!")
             await clientSync.connectAndSync();
             //Now files should be present in the ftp server
-            //await ftpClient.cd(remoteTestFolderPath)
-            //const res= await ftpClient.list();
-            //expect(res.length).toBeGreaterThan(0);
+            await ftpClient.cd(remoteTestFolderPath)
+            const res= await ftpClient.list();
+            expect(res.length).toBeGreaterThan(0);
         })
     })
 })

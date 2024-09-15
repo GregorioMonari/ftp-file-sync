@@ -4,12 +4,12 @@ import { FileSystemVisitor } from "../../lib/filesystem-tree-visitor/FileSystemV
 export default class TotalSizeFSTVisitor implements FileSystemVisitor{
     private totalSize=0;
 
-    visitFile(file: FileNode): void {
+    async visitFile(file: FileNode): Promise<void> {
         this.totalSize=this.totalSize+file.data.size;
     }
-    visitDirectory(directory: DirectoryNode): void {
+    async visitDirectory(directory: DirectoryNode): Promise<void> {
         for(const fsNode of directory.getChildren().values()){
-            fsNode.accept(this)
+            await fsNode.accept(this)
         }
     }
     getTotalSize(){

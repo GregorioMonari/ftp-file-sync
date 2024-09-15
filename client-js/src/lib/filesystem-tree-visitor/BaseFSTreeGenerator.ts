@@ -5,7 +5,7 @@ import { DirectoryNode, FileNode } from "./FileSystemNode";
 
 export default abstract class BaseFSTreeGenerator{
 
-    private currDirNode!:DirectoryNode;
+    protected currDirNode!:DirectoryNode;
 
     //TO OVERRIDE
     protected async list(dirPath:string): Promise<FSEntry[]> {
@@ -19,7 +19,7 @@ export default abstract class BaseFSTreeGenerator{
         return this.currDirNode;
     }
 
-    private async visit(parentDir:string){
+    protected async visit(parentDir:string){
         //console.log("**Visiting directory: "+parentDir)
         //console.log("Current node:",this.currDirNode)
         const entries:FSEntry[]= await this.list(parentDir);

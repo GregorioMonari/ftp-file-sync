@@ -1,6 +1,7 @@
-import { Config } from "../../interfaces/config.interface";
+import { Config } from "../interfaces/config.interface";
 import * as ftp from "basic-ftp";
 import WebSocket, {MessageEvent} from "ws";
+import FileTransferClient from "./FileTransferClient";
 /*
 WS-FTP LINK PROTOCOL
 client uses the original ftp socket
@@ -13,15 +14,15 @@ client can now listen to ws events
 */
 export default class WsConnector{
     private config:Config;
-    private client:ftp.Client; //handle file upload/download
+    private client:FileTransferClient; //handle file upload/download
 
-    constructor(config:Config,client:ftp.Client){
+    constructor(config:Config,client:FileTransferClient){
         this.config=config;
         this.client=client;
     }
 
     async getProxyConnID(): Promise<string>{
-        const response= await this.client.send("PROXYCONNID")
+        const response= await this.client.sendMessage("PROXYCONNID")
         console.log("Received connection id: ",response)
         if(response.code!=200){
             throw new Error("Error while subscribing to ws proxy: "+response.message)

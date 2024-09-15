@@ -9,7 +9,7 @@ export abstract class FileSystemNode{
     ) {}
 
     // Accept method that takes a visitor
-    abstract accept(visitor: FileSystemVisitor): void;
+    abstract accept(visitor: FileSystemVisitor): Promise<void>;
 }
 
 export class FileNode extends FileSystemNode {
@@ -18,8 +18,8 @@ export class FileNode extends FileSystemNode {
     }
   
     // Implement the accept method
-    accept(visitor: FileSystemVisitor): void {
-      visitor.visitFile(this);
+    async accept(visitor: FileSystemVisitor): Promise<void> {
+      await visitor.visitFile(this);
     }
 }
 
@@ -40,7 +40,7 @@ export class DirectoryNode extends FileSystemNode {
     }
   
     // Implement the accept method
-    accept(visitor: FileSystemVisitor): void {
-      visitor.visitDirectory(this);
+    async accept(visitor: FileSystemVisitor): Promise<void> {
+      await visitor.visitDirectory(this);
     }
   }

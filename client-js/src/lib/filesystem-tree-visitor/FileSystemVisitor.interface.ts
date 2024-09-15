@@ -1,6 +1,6 @@
 import { DirectoryNode, FileNode } from "./FileSystemNode";
 
 export interface FileSystemVisitor {
-    visitFile(file: FileNode): void;
-    visitDirectory(directory: DirectoryNode): void;
+    visitFile(file: FileNode): Promise<void>;
+    visitDirectory(directory: DirectoryNode): Promise<void>;
 }

@@ -3,4 +3,5 @@ export interface FSEntry{
     size:number;
     mtime: Date;
     isDirectory: boolean;
+    checksum?:string;
 }

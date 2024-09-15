@@ -1,4 +1,4 @@
-import { QueueEvent } from "../../interfaces/queue-event.interface";
+import { QueueEvent } from "../../../interfaces/queue-event.interface";
 import EventsQueue from "./EventsQueue";
 
 export default class QueueScheduler{

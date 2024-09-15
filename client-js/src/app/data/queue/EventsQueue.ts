@@ -1,4 +1,4 @@
-import { QueueEvent } from "../../interfaces/queue-event.interface";
+import { QueueEvent } from "../../../interfaces/queue-event.interface";
 
 //Execute in chain
 export default class EventsQueue{

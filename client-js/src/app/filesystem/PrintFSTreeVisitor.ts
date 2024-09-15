@@ -13,19 +13,19 @@ export default class PrintFSTreeVisitor implements FileSystemVisitor{
         return ind;
     }
 
-    visitFile(file: FileNode): void {
-        console.log(this.getIndentation()+file.name+ ` ${file.data.size}`)
+    async visitFile(file: FileNode): Promise<void> {
+        console.log(this.getIndentation()+file.name+ ` ${file.data.size} ${file.data.mtime}`)
     }
     
-    visitDirectory(directory: DirectoryNode): void {
+    async visitDirectory(directory: DirectoryNode): Promise<void> {
         if(directory.name==""){
             console.log("root")
         }else{
-            console.log(this.getIndentation()+directory.name+ ` ${directory.data.size}`)
+            console.log(this.getIndentation()+directory.name+ ` ${directory.data.size} ${directory.data.mtime}`)
         }
         this.currentIndentationLevel++;
         for(const fsNode of directory.getChildren().values()){
-            fsNode.accept(this)
+            await fsNode.accept(this)
         }
         this.currentIndentationLevel--;
     }
