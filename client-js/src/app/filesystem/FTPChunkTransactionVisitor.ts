@@ -35,11 +35,9 @@ export default class FTPChunkTransactionVisitor implements FileSystemVisitor{
             await this.fileTranferClient.mkRemoteDir(directory.path);
             console.log("Created remote folder: "+directory.path)
         }else{
-            let localParsedPath=directory.path;
-            if(!PathMapper.isPathLocalAbsoluteFormat(directory.path)) 
-                localParsedPath=PathMapper.getLocalTargetPath(directory.path);
-            fs.mkdirSync(localParsedPath);
-            console.log("Created local folder: "+directory.path)
+            const {local}=PathMapper.getLocalAndRemoteTargetPath(directory.path);
+            fs.mkdirSync(local);
+            console.log("Created local folder: "+local)
         }
         for(const fsNode of directory.getChildren().values()){
             await fsNode.accept(this)

@@ -92,6 +92,12 @@ export default class Synchronizer{
 
         //*Synchronize
         await this.client.ensureWorkDir();//Ensure both local and remote directory are present
+        //Now we are in work dir
+        //let res=await this.client.getRemoteFileChecksum("mao/bubus.txt")
+        //console.log(res)
+        // res=await this.client.getRemoteFileChecksum("mao\\bubus.txt")
+        //console.log(res)
+        //throw new Error("MAO")
         await this.synchronize();
 
         //ping every 15s
@@ -235,10 +241,8 @@ export default class Synchronizer{
                 if(syncDiffEntry==null){ //si si no
                     //REMOVE FROM LOCAL (rimosso da remoto)
                     console.log("remove from local "+diffEntry.localNode?.path);
-                    let parsedLocalPath= diffEntry.localNode?.path as string;
-                    if(!PathMapper.isPathLocalAbsoluteFormat(parsedLocalPath))
-                        parsedLocalPath= PathMapper.getLocalTargetPath(diffEntry.localNode?.path as string)
-                    fs.unlinkSync(parsedLocalPath);
+                    const {local} = PathMapper.getLocalAndRemoteTargetPath(diffEntry.localNode?.path as string)
+                    fs.unlinkSync(local);
                 }else if(syncDiffEntry.type=="local-only"){ //no si no
                     //UPLOAD (aggiunto offline)
                     if(diffEntry.localNode?.data.isDirectory){
@@ -355,13 +359,14 @@ export default class Synchronizer{
     private getCorrespondingLastSyncDbDiff(diffEntry:DiffEntry,lastSyncDiffList:DiffEntry[]): DiffEntry|null{
         let diffEntryLocalPath= diffEntry.type=="remote-only"?
             (diffEntry.remoteNode as FileSystemNode).path:(diffEntry.localNode as FileSystemNode).path
-        if(!PathMapper.isPathLocalAbsoluteFormat(diffEntryLocalPath)){
-            diffEntryLocalPath=PathMapper.getLocalTargetPath(diffEntryLocalPath)
-        }
+        const res1= PathMapper.getLocalAndRemoteTargetPath(diffEntryLocalPath)
+        diffEntryLocalPath=res1.local;
 
         for(const lastSyncDiffEntry of lastSyncDiffList){
             let pathToCompare= lastSyncDiffEntry.type=="remote-only"?
                 (lastSyncDiffEntry.remoteNode as FileSystemNode).path:(lastSyncDiffEntry.localNode as FileSystemNode).path
+            const res2= PathMapper.getLocalAndRemoteTargetPath(pathToCompare)
+            pathToCompare=res2.local;
             if(diffEntryLocalPath==pathToCompare) return lastSyncDiffEntry;
         }
         return null;
@@ -403,7 +408,7 @@ export default class Synchronizer{
     //Manage queue notifications
     async onWatcherQueueNotification(event: QueueEvent):Promise<void>{
         const watcherEvent= event.data.event as string;
-        const targetPath= event.data.targetPath as string;
+        const targetPath= event.data.targetPath as string
 
         //PING THE SERVER CONTINUOUSLY TO KEEP ALIVE THE CONNECTION
         if(watcherEvent=="ping"){
@@ -425,7 +430,8 @@ export default class Synchronizer{
         //Avoid sending back ws commands
         if(cmdName!=""&&cmdName==CommandsMap.event2commandName[watcherEvent]){
             //Compare paths
-            if(cmdPath==PathMapper.getRemoteTargetPath(event.data.targetPath as string)){
+            const res1= PathMapper.getLocalAndRemoteTargetPath(targetPath);
+            if(cmdPath==res1.remote){
                 console.log("Skipped change notification because it matches the last server command: "+cmdName)
                 previousServerCommands.shift(); //delete last server notification
                 return;
@@ -475,7 +481,8 @@ export default class Synchronizer{
         console.log("Received command notification from server:",command)
         const commandName= command.split(" ")[0];
         const remoteTargetPath= command.split(" ")[1];
-        const targetPath= PathMapper.getLocalTargetPath(remoteTargetPath);
+        const res= PathMapper.getLocalAndRemoteTargetPath(remoteTargetPath);
+        const targetPath= res.local;
         
         switch(commandName){
             case "STOR":
@@ -497,7 +504,8 @@ export default class Synchronizer{
                 //this.queueScheduler.previousServerCommandsBuffer.shift(); //shifted both by watcher handler
 
                 const remoteTargetPathNext= previousCommand.split(" ")[1];
-                const targetPathNext= PathMapper.getLocalTargetPath(remoteTargetPathNext);
+                const res2= PathMapper.getLocalAndRemoteTargetPath(remoteTargetPathNext);
+                const targetPathNext= res2.local;
                 fs.renameSync(targetPath,targetPathNext)
                 //await this.client.downloadTo(targetPath, remoteTargetPath);
                 //console.log("uploaded changed file to remote path:",remoteTargetPath)

@@ -44,7 +44,9 @@ export default class ComparisonFSTreeVisitor implements FileSystemVisitor{
                 if(fileToCompare.data.checksum){
                     fileToCompareChecksum= fileToCompare.data.checksum;
                 }else{
+                    console.log("Get remote file checksumn")
                     fileToCompareChecksum= await this.fileTransferClient.getRemoteFileChecksum(fileToCompare.path);
+                    console.log("Gotcha")
                 }
                 if(fileChecksum!=fileToCompareChecksum){
                     console.log("found changed file: "+file.name+", checksums:",file.data.checksum,fileToCompare.data.checksum)

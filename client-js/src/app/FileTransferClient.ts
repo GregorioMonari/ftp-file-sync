@@ -74,9 +74,8 @@ export default class FileTransferClient{
     async list(path?:string){ //list from remote server
         let parsedPath=path;
         if(path){
-            if(PathMapper.isPathLocalAbsoluteFormat(path)){
-                parsedPath=PathMapper.getRemoteTargetPath(path);
-            }
+            const {local,remote} = PathMapper.getLocalAndRemoteTargetPath(path)
+            parsedPath= remote;
         }
         return await this.ftpClient.list(parsedPath);
     }
@@ -96,47 +95,29 @@ export default class FileTransferClient{
     }
 
     async mkRemoteDir(path:string){
-        let parsedRemotePath=path;
-        if(PathMapper.isPathLocalAbsoluteFormat(path)){
-            parsedRemotePath= PathMapper.getRemoteTargetPath(path);
-        }
-        await this.ftpClient.ensureDir(parsedRemotePath);
+        const {remote}= PathMapper.getLocalAndRemoteTargetPath(path);
+        await this.ftpClient.ensureDir(remote);
         await this.cdIntoWorkDir();
     }
     async renameRemote(path:string,pathNext:string){
-        let parsedRemotePath=path;
-        if(PathMapper.isPathLocalAbsoluteFormat(path)){
-            parsedRemotePath= PathMapper.getRemoteTargetPath(path);
-        }
-        let parsedRemotePathNext=path;
-        if(PathMapper.isPathLocalAbsoluteFormat(path)){
-            parsedRemotePathNext= PathMapper.getRemoteTargetPath(path);
-        }
-        await this.ftpClient.rename(parsedRemotePath,parsedRemotePathNext);
+        const res= PathMapper.getLocalAndRemoteTargetPath(path);
+        const resNext = PathMapper.getLocalAndRemoteTargetPath(pathNext);
+        await this.ftpClient.rename(res.remote,resNext.remote);
     }
     async removeFromRemote(path:string){
-        let parsedRemotePath=path;
-        if(PathMapper.isPathLocalAbsoluteFormat(path)){
-            parsedRemotePath= PathMapper.getRemoteTargetPath(path);
-        }
-        await this.ftpClient.remove(parsedRemotePath);
+        const {remote}= PathMapper.getLocalAndRemoteTargetPath(path);
+        await this.ftpClient.remove(remote);
     }
     async removeDirFromRemote(path:string){
-        let parsedRemotePath=path;
-        if(PathMapper.isPathLocalAbsoluteFormat(path)){
-            parsedRemotePath= PathMapper.getRemoteTargetPath(path);
-        }
-        await this.ftpClient.removeDir(parsedRemotePath);
+        const {remote}= PathMapper.getLocalAndRemoteTargetPath(path);
+        await this.ftpClient.removeDir(remote);
     }
 
     async pwd(){
         return await this.ftpClient.pwd();
     }
     public async getRemoteFileChecksum(filePath:string){
-        let remoteParsedPath= filePath;
-        if(PathMapper.isPathLocalAbsoluteFormat(remoteParsedPath)){
-            remoteParsedPath= PathMapper.getRemoteTargetPath(filePath)
-        }
+        const {remote}= PathMapper.getLocalAndRemoteTargetPath(filePath);
         const hash = crypto.createHash('md5');
         const stream = new Writable({
             write(chunk, encoding, callback) {
@@ -144,7 +125,7 @@ export default class FileTransferClient{
                 callback();
             },
         })
-        await this.ftpClient.downloadTo(stream,remoteParsedPath);
+        await this.ftpClient.downloadTo(stream,remote);
         return hash.digest('hex');
     }
 
@@ -180,24 +161,22 @@ export default class FileTransferClient{
     }
 
     private async uploadDirInChunks(targetPath:string){
-        let parsedTargetPath=targetPath;
-        if(!PathMapper.isPathLocalAbsoluteFormat(targetPath)){
-            parsedTargetPath= PathMapper.getLocalTargetPath(targetPath)
-        }
-        logger.debug("Chunk uploading dir "+parsedTargetPath);
+        const {local}= PathMapper.getLocalAndRemoteTargetPath(targetPath);
+        logger.debug("Chunk uploading dir "+local);
         //Create folder tree
         const generator= new LocalFSTreeGenerator();
-        const node= await generator.generateFSTreeFromPath(parsedTargetPath);
+        const node= await generator.generateFSTreeFromPath(local);
         //Upload file by file
         const visitor= new FTPChunkTransactionVisitor("UPLOAD",this);
         await node.accept(visitor);
         logger.debug("Chunk upload finished!");
     }
     private async downloadDirInChunks(remoteTargetPath:string){
-        logger.debug("Chunk downloading dir "+remoteTargetPath);
+        const {remote}= PathMapper.getLocalAndRemoteTargetPath(remoteTargetPath);
+        logger.debug("Chunk downloading dir "+remote);
         //Create folder tree
         const generator= new FTPRemoteFsTreeGenerator(this);
-        const node= await generator.generateFSTreeFromPath(remoteTargetPath);
+        const node= await generator.generateFSTreeFromPath(remote);
         //Upload file by file
         const visitor= new FTPChunkTransactionVisitor("DOWNLOAD",this);
         await node.accept(visitor);
