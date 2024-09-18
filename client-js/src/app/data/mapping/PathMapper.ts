@@ -30,6 +30,14 @@ export default class PathMapper{
         this.remoteRootPath=parsedPwd+this.sharedFolderName;
         this.initialized=true;
     }
+    public static getLocalPathSeparator(){
+        if(!this.initialized) throw new Error("PathMapper is not initialized. Please initialize this static class with setLocalAndRemotePaths(lp,pwd)")
+        return this.localPathSeparator
+    }
+    public static getRemotePathSeparator(){
+        if(!this.initialized) throw new Error("PathMapper is not initialized. Please initialize this static class with setLocalAndRemotePaths(lp,pwd)")
+        return this.ftpPathSeparator
+    }
     public static getLocalRootPath(){
         if(!this.initialized) throw new Error("PathMapper is not initialized. Please initialize this static class with setLocalAndRemotePaths(lp,pwd)")
         return this.localRootPath
@@ -85,7 +93,7 @@ export default class PathMapper{
     private static getRemoteTargetPath(localTargetPath:string){
         if(!this.initialized) throw new Error("PathMapper is not initialized. Please initialize this static class with setLocalAndRemotePaths(lp,pwd)")
         if(!this.isPathLocalAbsoluteFormat(localTargetPath)) throw new Error("provided remote path instead of local: "+localTargetPath)
-        console.log("get remote target path from:",localTargetPath)
+        //console.log("get remote target path from:",localTargetPath)
         let remoteTargetPath=localTargetPath.replace(this.localRootPath,"") //consider we already cd into working dir
         if(remoteTargetPath.startsWith("/|\\")) remoteTargetPath=remoteTargetPath.slice(1);
         //console.log(remoteTargetPath)

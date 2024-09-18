@@ -172,17 +172,18 @@ export default class Synchronizer{
         await localTreeRoot.accept(diffCheckerVisitor);
         const diffList= diffCheckerVisitor.getDiffList();
         logger.info("found "+diffList.length+" differences")
-        //todo: check diffs between last sync and local
-        let lastSyncDiffList:DiffEntry[]=[];
-        if(lastSyncLocalTreeRoot){
-            logger.info("checking for differences between local and last sync db")
-            const lastSyncDiffCheckerVisitor= new ComparisonFSTreeVisitor(lastSyncLocalTreeRoot,this.client,recursive); //!non usiamo il client perchè abbiamo tutti i checksum
-            await localTreeRoot.accept(lastSyncDiffCheckerVisitor);
-            lastSyncDiffList= lastSyncDiffCheckerVisitor.getDiffList();
-            logger.info("found "+lastSyncDiffList.length+" differences")
-        }
 
         if(diffList.length>0){
+            //Check for diffs with lastSync only if server and client are desynchronized
+            let lastSyncDiffList:DiffEntry[]=[];
+            if(lastSyncLocalTreeRoot){
+                logger.info("checking for differences between local and last sync db")
+                const lastSyncDiffCheckerVisitor= new ComparisonFSTreeVisitor(lastSyncLocalTreeRoot,this.client,recursive); //!non usiamo il client perchè abbiamo tutti i checksum
+                await localTreeRoot.accept(lastSyncDiffCheckerVisitor);
+                lastSyncDiffList= lastSyncDiffCheckerVisitor.getDiffList();
+                logger.info("found "+lastSyncDiffList.length+" differences")
+            }
+            //Proceed with merge
             logger.info("merging changes...")
             const conflicts= await this.mergeDiffs(diffList,lastSyncDiffList);
             if(conflicts.length==0){
@@ -441,36 +442,51 @@ export default class Synchronizer{
         switch (watcherEvent) {
             case "change":
                 await this.client.upload(targetPath);
+                await this.syncStateDb.update(targetPath);
                 logger.info("uploaded changed file "+targetPath)
                 break;
             case "add":
                 await this.client.upload(targetPath);
+                await this.syncStateDb.update(targetPath);
                 logger.info("added file "+targetPath)
                 break;
-            case "addDir":
-                await this.client.uploadDir(targetPath); //TODO: USE TREE INSTEAD OF UPLOADING WHOLE DIR AT ONCE
+            case "addDir": 
+                //!we do not do chunk upload, because watcher sends add event for every contained file and subdir
+                //await this.client.uploadDir(targetPath);
+                await this.client.mkRemoteDir(targetPath); //instead, just create dir
+                await this.syncStateDb.update(targetPath);
                 logger.info("added directory "+targetPath)
                 break;
             case "rename":
                 var targetPathNext= event.data.targetPathNext as string;
                 await this.client.renameRemote(targetPath, targetPathNext);
+                await this.syncStateDb.remove(targetPath);
+                await this.syncStateDb.update(targetPathNext);
                 logger.info("renamed file "+targetPath+" to "+targetPathNext)
                 break;
             case "renameDir":
                 var targetPathNext= event.data.targetPathNext as string;
                 await this.client.renameRemote(targetPath, targetPathNext);
+                await this.syncStateDb.remove(targetPath);
+                await this.syncStateDb.update(targetPathNext);
                 logger.info("renamed dir "+targetPath+" to "+targetPathNext)
                 break;
             case "unlink":
-                await this.client.removeFromRemote(targetPath);
-                logger.info("removing file ",targetPath)
+                try{
+                    await this.client.removeFromRemote(targetPath);
+                }catch(e){
+                    logger.warn("File remove failed from remote, maybe directory has already been deleted",e);
+                }
+                await this.syncStateDb.remove(targetPath);
+                logger.info("removed remote file "+targetPath)
                 break;
             case "unlinkDir": //!THIS HAS STRANGE PATH
                 await this.client.removeDirFromRemote(targetPath);
-                logger.info("removing directory from remote path:",targetPath)
+                await this.syncStateDb.remove(targetPath);
+                logger.info("removed remote directory "+targetPath)
                 break;
             default:
-                logger.warn("skipping unknown event:",event)
+                logger.warn("skipping unknown event: "+event)
                 break;
         }
     }

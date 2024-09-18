@@ -74,7 +74,7 @@ export default class FileTransferClient{
     async list(path?:string){ //list from remote server
         let parsedPath=path;
         if(path){
-            const {local,remote} = PathMapper.getLocalAndRemoteTargetPath(path)
+            const {remote} = PathMapper.getLocalAndRemoteTargetPath(path)
             parsedPath= remote;
         }
         return await this.ftpClient.list(parsedPath);
@@ -111,6 +111,7 @@ export default class FileTransferClient{
     async removeDirFromRemote(path:string){
         const {remote}= PathMapper.getLocalAndRemoteTargetPath(path);
         await this.ftpClient.removeDir(remote);
+        //console.log(remote,path)
     }
 
     async pwd(){

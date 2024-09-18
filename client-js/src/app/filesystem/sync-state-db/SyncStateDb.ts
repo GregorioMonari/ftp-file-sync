@@ -14,10 +14,7 @@ export default abstract class SyncStateDb{
     async closeDb(){
         throw new Error("Not implemented")
     }
-    async add(path:string, data:FileSystemNode){
-        throw new Error("Not implemented")
-    }
-    async update(path:string, data:FileSystemNode){
+    async update(path:string){
         throw new Error("Not implemented")
     }
     async remove(path:string){
